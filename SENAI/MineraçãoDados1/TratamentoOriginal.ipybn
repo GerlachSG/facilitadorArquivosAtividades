@@ -1,0 +1,150 @@
+# Importar bibliotecas
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, MinMaxScaler, StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+
+# -------------------------
+# 1. Carregamento e Checagem Inicial
+# -------------------------
+url = 'https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv'
+df = pd.read_csv(url)
+
+print("==========================================================================")
+print("ETAPA 0: INFORMAÇÕES INICIAIS E DADOS FALTANTES")
+print("==========================================================================")
+print("DF.INFO() ANTES DO TRATAMENTO (Observar as colunas 'Age', 'Cabin' e 'Embarked')")
+df.info()
+
+# Detalhamento do Resultado 0:
+print("\n[RESULTADO 0] Colunas com Valores Não-Nulos:")
+print(f"- Age (Idade): Apenas 714 de 891 registros (177 faltantes)")
+print(f"- Cabin (Cabine): Apenas 204 de 891 registros (687 faltantes - quase 77%)")
+print(f"- Embarked (Embarque): 889 de 891 registros (2 faltantes)")
+print("-" * 50)
+
+
+# -------------------------
+# 1.6. Tratamento de Dados Faltantes
+# -------------------------
+
+# 1. Tratar 'Age' (Numérica): Imputação pela Mediana
+imputer_idade = SimpleImputer(strategy='median')
+df['Age'] = imputer_idade.fit_transform(df[['Age']])
+
+# 2. Tratar 'Cabin' (Muitos faltantes): Remover a coluna
+df = df.drop('Cabin', axis=1)
+
+# 3. Tratar 'Embarked' (Categórica): Imputação pela Moda (Mais Frequente)
+imputer_embarque = SimpleImputer(strategy='most_frequent')
+df['Embarked'] = imputer_embarque.fit_transform(df[['Embarked']]).flatten()
+
+print("\n==========================================================================")
+print("ETAPA 1: TRATAMENTO DE DADOS FALTANTES (1.6)")
+print("==========================================================================")
+print("DF.INFO() DEPOIS DO TRATAMENTO")
+df.info()
+
+# Detalhamento do Resultado 1:
+print("\n[RESULTADO 1] Mudanças após Tratamento:")
+print("- Age: Passou a ter 891/891 registros (os 177 faltantes foram preenchidos pela mediana).")
+print(f"- Embarked: Passou a ter 891/891 registros (os 2 faltantes foram preenchidos pela moda).")
+print("- Cabin: A coluna foi permanentemente removida do DataFrame.")
+print("-" * 50)
+
+
+# -------------------------
+# 1.8. Separação de Atributos (Entrada e Saída)
+# -------------------------
+
+# Definir a variável alvo (Saída/Target)
+Y = df['Survived']
+
+# Definir as variáveis de entrada (Input/Features), removendo colunas irrelevantes
+X = df.drop(['Survived', 'PassengerId', 'Name', 'Ticket', 'Fare'], axis=1)
+
+print("\n==========================================================================")
+print("ETAPA 2: SEPARAÇÃO DE ATRIBUTOS (1.8)")
+print("==========================================================================")
+print(f"Atributo de Saída (Y) - 5 Primeiros Valores:")
+print(Y.head())
+print(f"\nAtributos de Entrada (X) - 5 Primeiros Valores:")
+print(X.head())
+
+# Detalhamento do Resultado 2:
+print("\n[RESULTADO 2] Estrutura de Entrada e Saída:")
+print(f"- Y (Saída): Um vetor/série de 891 valores binários (0 ou 1).")
+print(f"- X (Entrada): Um DataFrame de 891 linhas e 6 colunas úteis, prontas para Engenharia de Atributos.")
+print("-" * 50)
+
+
+# -------------------------
+# 1.7. Engenharia de Atributos (Codificação e Padronização)
+# -------------------------
+
+# Definir os atributos por tipo
+colunas_categoricas_binarias = ['Sex']
+colunas_categoricas_nominais = ['Embarked', 'Pclass'] # Incluímos Pclass para demonstração completa
+colunas_numericas = ['Age', 'Parch', 'SibSp']
+
+# Criar o pipeline de transformações
+preprocessor = ColumnTransformer(
+    transformers=[
+        # 1.7.1. Label Encoding (Aplicado via OHE com drop para binárias)
+        ('bin', OneHotEncoder(drop='if_binary', handle_unknown='ignore', sparse_output=False), colunas_categoricas_binarias),
+
+        # 1.7.2. One Hot Encoder (para 'Embarked' e 'Pclass')
+        ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False), colunas_categoricas_nominais),
+
+        # 1.7.4. Padronização (StandardScaler)
+        ('std_age', StandardScaler(), ['Age']),
+
+        # 1.7.3. Normalização (MinMaxScaler) - Demonstração para 'Parch' e 'SibSp'
+        ('norm', MinMaxScaler(), ['Parch', 'SibSp'])
+    ],
+    remainder='drop'
+)
+
+# Aplicar as transformações
+X_processado = preprocessor.fit_transform(X)
+
+# Transformar de volta para DataFrame (para visualização)
+# Capturando os nomes das colunas criadas pelos encoders
+feature_names = (
+    preprocessor.named_transformers_['bin'].get_feature_names_out(colunas_categoricas_binarias).tolist() +
+    preprocessor.named_transformers_['onehot'].get_feature_names_out(colunas_categoricas_nominais).tolist() +
+    ['Age_Standardized'] +
+    ['Parch_Normalized', 'SibSp_Normalized']
+)
+X_df_final = pd.DataFrame(X_processado, columns=feature_names)
+
+
+print("\n==========================================================================")
+print("ETAPA 3: ENGENHARIA DE ATRIBUTOS (1.7) - VISUALIZAÇÃO DOS RESULTADOS")
+print("==========================================================================")
+print("DF.HEAD() DEPOIS DA CODIFICAÇÃO E ESCALONAMENTO")
+print(X_df_final.head())
+print(f"\nShape Final: {X_df_final.shape}")
+
+# Detalhamento do Resultado 3:
+print("\n[RESULTADO 3] Efeitos da Engenharia de Atributos:")
+
+# 1.7.1. e 1.7.2. Codificação (Sex, Embarked, Pclass)
+print("--- CODIFICAÇÃO ---")
+print("- Sex: A coluna categórica 'Sex' foi transformada em uma coluna binária 'Sex_male'. Onde 1 é 'male' e 0 é 'female'. (One Hot Encoder com 'drop').")
+print("- Embarked & Pclass: Foram criadas novas colunas binárias para cada categoria única (e.g., 'Embarked_S', 'Pclass_1'), eliminando a ordem interpretada pelos modelos.")
+print(f"  -> Total de novas colunas categóricas: {len(colunas_categoricas_binarias) + len(colunas_categoricas_nominais)}")
+
+# 1.7.4. Padronização (StandardScaler)
+print("--- PADRONIZAÇÃO ---")
+print("- Age (Age_Standardized): Os valores foram padronizados. Note que os valores estão próximos de zero. Isso significa que:")
+print("  - Valores positivos (ex: 0.613374) estão acima da média original.")
+print("  - Valores negativos (ex: -0.551044) estão abaixo da média original.")
+
+# 1.7.3. Normalização (MinMaxScaler)
+print("--- NORMALIZAÇÃO ---")
+print("- Parch/SibSp (Normalized): Os valores foram normalizados (entre 0 e 1).")
+print("  - O valor 0.000000 em 'Parch_Normalized' (para a 1ª e 2ª linha) indica que 0 é o valor mínimo dessa feature no dataset (após o processamento).")
+print("-" * 50)

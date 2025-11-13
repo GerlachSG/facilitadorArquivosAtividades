@@ -1,0 +1,14 @@
+nome_metal,ponto_fusao,densidade,disponibilidade,origem_mineral,dureza,maleabilidade,corrosao,categoria
+Ferro,1538.0,7.87,alta,sim,4.0,7.0,2.0,comum
+Cobre,1085.0,8.855,baixa,sim,3.0,5.0,2.0,nobre
+Estanho,232.0,7.31,média,sim,4.0,7.0,1.0,comum
+Ouro,1064.0,19.32,baixa,sim,2.0,9.0,0.0,precioso
+Prata,961.0,10.49,baixa,sim,2.0,8.0,0.0,precioso
+Bronze,950.0,8.8,baixa,não,3.0,6.0,1.0,nobre
+Aço,1450.0,7.8,alta,sim,5.0,4.0,1.0,comum
+Mithril,1500.0,8.855,alta,sim,6.0,9.0,1.0,raro
+Adamantina,1267.5,8.855,baixa,sim,7.0,7.0,0.0,raro
+Mercúrio,-39.0,13.53,baixa,sim,4.0,10.0,0.0,precioso
+Níquel,1455.0,8.91,média,sim,4.0,6.0,2.0,comum
+Titânio,1668.0,4.51,baixa,sim,6.0,7.0,1.0,raro
+Tungstênio,3422.0,19.25,baixa,sim,9.0,7.0,1.0,raro

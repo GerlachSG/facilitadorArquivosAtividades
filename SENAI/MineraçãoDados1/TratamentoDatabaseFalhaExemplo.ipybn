@@ -1,0 +1,106 @@
+# Importar bibliotecas
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder, MinMaxScaler, StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+
+# -------------------------
+# 1. Carregamento e Checagem Inicial
+# -------------------------
+df = pd.read_csv('/content/databaseFalhaExemplo.csv')  # ou 'databaseCorrido.csv' se corrigido
+
+print("==========================================================================")
+print("ETAPA 0: INFORMAÇÕES INICIAIS E DADOS FALTANTES")
+print("==========================================================================")
+print("DF.INFO() ANTES DO TRATAMENTO (Observar as colunas de metais)")
+df.info()
+
+# Detalhamento do Resultado 0:
+print("\n[RESULTADO 0] Colunas com Valores Não-Nulos:")
+for col in df.columns:
+    print(f"- {col}: {df[col].count()} de {len(df)} registros (faltantes: {df[col].isnull().sum()})")
+print("-" * 50)
+
+# -------------------------
+# 1.6. Tratamento de Dados Faltantes
+# -------------------------
+# 1. Tratar colunas numéricas: imputação pela mediana
+imputer_num = SimpleImputer(strategy='median')
+num_cols = ['ponto_fusao', 'densidade', 'dureza', 'maleabilidade', 'corrosao']
+df[num_cols] = imputer_num.fit_transform(df[num_cols])
+
+# 2. Tratar colunas categóricas: imputação pela moda
+imputer_cat = SimpleImputer(strategy='most_frequent')
+cat_cols = ['nome_metal', 'disponibilidade', 'origem_mineral']
+df[cat_cols] = imputer_cat.fit_transform(df[cat_cols])
+
+print("\n==========================================================================")
+print("ETAPA 1: TRATAMENTO DE DADOS FALTANTES (1.6)")
+print("==========================================================================")
+print("DF.INFO() DEPOIS DO TRATAMENTO")
+df.info()
+
+# Mudanças após tratamento
+print("\n[RESULTADO 1] Mudanças após Tratamento:")
+for col in df.columns:
+    print(f"- {col}: Agora {df[col].isnull().sum()} valores faltantes.")
+print("-" * 50)
+
+# -------------------------
+# 1.8. Separação de Atributos (Entrada e Saída)
+# -------------------------
+Y = df['categoria']  # Target (Saída/Classe: nobre, comum, etc.)
+X = df.drop(['categoria'], axis=1)  # Features
+
+print("\n==========================================================================")
+print("ETAPA 2: SEPARAÇÃO DE ATRIBUTOS (1.8)")
+print("==========================================================================")
+print(f"Atributo de Saída (Y) - 5 Primeiros Valores:")
+print(Y.head())
+print(f"\nAtributos de Entrada (X) - 5 Primeiros Valores:")
+print(X.head())
+
+print("\n[RESULTADO 2] Estrutura de Entrada e Saída:")
+print(f"- Y (Saída): Um vetor/série de {len(Y)} valores variados ({Y.unique()})")
+print(f"- X (Entrada): Um DataFrame de {X.shape[0]} linhas e {X.shape[1]} colunas.")
+print("-" * 50)
+
+# -------------------------
+# 1.7. Engenharia de Atributos (Codificação e Padronização)
+# -------------------------
+# Definição de atributos
+categorical_cols = ['nome_metal', 'disponibilidade', 'origem_mineral']
+numerical_cols = ['ponto_fusao', 'densidade', 'dureza', 'maleabilidade', 'corrosao']
+
+# Pipeline de transformações
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), categorical_cols),
+        ('num', StandardScaler(), numerical_cols)
+    ],
+    remainder='drop'
+)
+
+# Aplicar as transformações
+X_processed = preprocessor.fit_transform(X)
+
+# Nomes das colunas após o processamento
+cat_features = preprocessor.named_transformers_['cat'].get_feature_names_out(categorical_cols)
+features = list(cat_features) + numerical_cols
+X_df_final = pd.DataFrame(X_processed, columns=features)
+
+print("\n==========================================================================")
+print("ETAPA 3: ENGENHARIA DE ATRIBUTOS (1.7) - VISUALIZAÇÃO DOS RESULTADOS")
+print("==========================================================================")
+print("DF.HEAD() DEPOIS DA CODIFICAÇÃO E ESCALONAMENTO")
+print(X_df_final.head())
+print(f"\nShape Final: {X_df_final.shape}")
+
+print("\n[RESULTADO 3] Efeitos da Engenharia de Atributos:")
+print("--- CODIFICAÇÃO ---")
+print(f"- As colunas categóricas viraram: {cat_features}")
+print("--- PADRONIZAÇÃO ---")
+print("- As colunas numéricas foram padronizadas (StandardScaler).")
+print("-" * 50)
